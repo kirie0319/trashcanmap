@@ -2,58 +2,99 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
+    <meta name="description" content="日本のゴミ箱位置をマッピング・共有するアプリ。外国人観光客や住民がゴミ箱を見つけやすくするためのモバイルフレンドリーなWebアプリです。">
+    <meta name="keywords" content="ゴミ箱,マップ,日本,観光,モバイル,アプリ,trash can,map,Japan">
+    <meta name="theme-color" content="#1a73e8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ゴミ箱マップ">
     <title data-lang="page-title">ゴミ箱マップ - 日本のゴミ箱位置マッピング</title>
     <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- PWA対応のアイコン設定 -->
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMWE3M2U4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik02IDE5YzAgMS4xLjkgMiAyIDJoOGMxLjEgMCAyLS45IDItMlY3SDZ2MTJ6TTE5IDRoLTMuNWwtMS0xaC01bC0xIDFINXYyaDE0VjR6Ii8+PC9zdmc+">
 </head>
 <body>
     <div class="container">
         <header>
             <div class="header-content">
                 <div class="title-section">
-                    <h1 data-lang="app-title">🗑️ ゴミ箱マップ</h1>
-                    <p data-lang="app-description">日本のゴミ箱位置をマッピング・共有するアプリ</p>
+                    <span class="logo">🗑️</span>
+                    <div>
+                        <h1 data-lang="app-title">ゴミ箱マップ</h1>
+                        <p data-lang="app-description">日本のゴミ箱位置をマッピング・共有するアプリ</p>
+                    </div>
                 </div>
-                <div class="language-selector">
-                    <button id="langToggle" class="btn btn-secondary">🌐 English</button>
+                <div class="header-actions">
+                    <div class="language-selector">
+                        <button id="langToggle" class="btn btn-icon" aria-label="言語切り替え" title="言語切り替え">🌐</button>
+                    </div>
                 </div>
             </div>
         </header>
         
-        <div class="controls">
-            <button id="togglePinMode" class="btn btn-primary" data-lang="add-mode-btn">🗑️ ゴミ箱追加モード: OFF</button>
-            <button id="clearAllPins" class="btn btn-danger" data-lang="clear-all-btn">🧹 全ゴミ箱削除</button>
+        <div class="sidebar">
+            <div class="search-section">
+                <input type="text" class="search-box" placeholder="ゴミ箱を検索..." data-lang-placeholder="search-placeholder" id="searchBox">
+            </div>
+            
+            <div class="controls-section">
+                <div class="controls">
+                    <button id="togglePinMode" class="btn btn-primary" data-lang="add-mode-btn" aria-label="ゴミ箱追加モードの切り替え">
+                        📍 ゴミ箱追加モード: OFF
+                    </button>
+                    <button id="clearAllPins" class="btn btn-danger" data-lang="clear-all-btn" aria-label="全てのゴミ箱を削除">
+                        🗑️ 全削除
+                    </button>
+                </div>
+            </div>
+            
+            <div class="pins-section">
+                <h3 data-lang="trash-list-title">ゴミ箱一覧</h3>
+                <div id="pinsList" role="list" aria-label="ゴミ箱の一覧"></div>
+            </div>
         </div>
         
         <div class="map-container">
-            <div id="map"></div>
-        </div>
-        
-        <div class="sidebar">
-            <h3 data-lang="trash-list-title">🗑️ ゴミ箱一覧</h3>
-            <div id="pinsList"></div>
+            <div id="map" role="application" aria-label="ゴミ箱の位置を表示する地図"></div>
+            
+            <!-- Google Maps風のズームコントロール -->
+            <div class="map-controls">
+                <div class="zoom-control">
+                    <button class="zoom-btn" onclick="zoomIn()" aria-label="ズームイン" title="ズームイン">+</button>
+                    <button class="zoom-btn" onclick="zoomOut()" aria-label="ズームアウト" title="ズームアウト">−</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- ゴミ箱追加モーダル -->
-    <div id="pinModal" class="modal">
+    <div id="pinModal" class="modal" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 data-lang="modal-title">🗑️ 新しいゴミ箱を追加</h2>
-            <form id="pinForm">
-                <div class="form-group">
-                    <label for="pinTitle" data-lang="location-label">場所・名称:</label>
-                    <input type="text" id="pinTitle" data-lang-placeholder="location-placeholder" placeholder="例: 渋谷駅ハチ公前" required>
-                </div>
-                <div class="form-group">
-                    <label for="pinDescription" data-lang="details-label">詳細情報:</label>
-                    <textarea id="pinDescription" rows="3" data-lang-placeholder="details-placeholder" placeholder="例: 改札外、自動販売機横、24時間利用可能"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" data-lang="add-btn">追加</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()" data-lang="cancel-btn">キャンセル</button>
-                </div>
-            </form>
+            <div class="modal-header">
+                <h2 id="modal-title" data-lang="modal-title">新しいゴミ箱を追加</h2>
+                <span class="close" aria-label="モーダルを閉じる" title="閉じる">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <form id="pinForm">
+                    <div class="form-group">
+                        <label for="pinTitle" data-lang="location-label">場所・名称</label>
+                        <input type="text" id="pinTitle" data-lang-placeholder="location-placeholder" placeholder="例: 渋谷駅ハチ公前" required aria-required="true">
+                    </div>
+                    <div class="form-group">
+                        <label for="pinDescription" data-lang="details-label">詳細情報</label>
+                        <textarea id="pinDescription" rows="3" data-lang-placeholder="details-placeholder" placeholder="例: 改札外、自動販売機横、24時間利用可能" aria-describedby="description-help"></textarea>
+                        <small id="description-help" data-lang="description-help">任意: ゴミ箱の詳細な場所や利用可能時間などを入力してください</small>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal()" data-lang="cancel-btn">キャンセル</button>
+                <button type="submit" form="pinForm" class="btn btn-primary" data-lang="add-btn">追加</button>
+            </div>
         </div>
     </div>
 

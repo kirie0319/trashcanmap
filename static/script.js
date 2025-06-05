@@ -9,17 +9,19 @@ let currentLanguage = 'ja'; // デフォルトは日本語
 const translations = {
     ja: {
         'page-title': 'ゴミ箱マップ - 日本のゴミ箱位置マッピング',
-        'app-title': '🗑️ ゴミ箱マップ',
+        'app-title': 'ゴミ箱マップ',
         'app-description': '日本のゴミ箱位置をマッピング・共有するアプリ',
-        'add-mode-btn': '🗑️ ゴミ箱追加モード: OFF',
-        'add-mode-btn-on': '🗑️ ゴミ箱追加モード: ON',
-        'clear-all-btn': '🧹 全ゴミ箱削除',
-        'trash-list-title': '🗑️ ゴミ箱一覧',
-        'modal-title': '🗑️ 新しいゴミ箱を追加',
-        'location-label': '場所・名称:',
+        'search-placeholder': 'ゴミ箱を検索...',
+        'add-mode-btn': '📍 ゴミ箱追加モード: OFF',
+        'add-mode-btn-on': '📍 ゴミ箱追加モード: ON',
+        'clear-all-btn': '🗑️ 全削除',
+        'trash-list-title': 'ゴミ箱一覧',
+        'modal-title': '新しいゴミ箱を追加',
+        'location-label': '場所・名称',
         'location-placeholder': '例: 渋谷駅ハチ公前',
-        'details-label': '詳細情報:',
+        'details-label': '詳細情報',
         'details-placeholder': '例: 改札外、自動販売機横、24時間利用可能',
+        'description-help': '任意: ゴミ箱の詳細な場所や利用可能時間などを入力してください',
         'add-btn': '追加',
         'cancel-btn': 'キャンセル',
         'delete-btn': '削除',
@@ -27,7 +29,7 @@ const translations = {
         'fallback-title': 'ゴミ箱マップ',
         'fallback-desc1': 'Google Maps APIキーが設定されていません',
         'fallback-desc2': 'デモ用の簡易地図として動作します',
-        'fallback-add-btn': '🗑️ ゴミ箱を追加（デモ）',
+        'fallback-add-btn': '📍 ゴミ箱を追加（デモ）',
         'confirm-delete': 'このゴミ箱を削除しますか？',
         'confirm-delete-all': '全てのゴミ箱を削除しますか？',
         'alert-enable-mode': 'まずゴミ箱追加モードをONにしてください',
@@ -41,17 +43,19 @@ const translations = {
     },
     en: {
         'page-title': 'Trash Can Map - Mapping Trash Can Locations in Japan',
-        'app-title': '🗑️ Trash Can Map',
+        'app-title': 'Trash Can Map',
         'app-description': 'App for mapping and sharing trash can locations in Japan',
-        'add-mode-btn': '🗑️ Add Trash Can Mode: OFF',
-        'add-mode-btn-on': '🗑️ Add Trash Can Mode: ON',
-        'clear-all-btn': '🧹 Clear All Trash Cans',
-        'trash-list-title': '🗑️ Trash Can List',
-        'modal-title': '🗑️ Add New Trash Can',
-        'location-label': 'Location/Name:',
+        'search-placeholder': 'Search trash cans...',
+        'add-mode-btn': '📍 Add Trash Can Mode: OFF',
+        'add-mode-btn-on': '📍 Add Trash Can Mode: ON',
+        'clear-all-btn': '🗑️ Clear All',
+        'trash-list-title': 'Trash Can List',
+        'modal-title': 'Add New Trash Can',
+        'location-label': 'Location/Name',
         'location-placeholder': 'e.g. Shibuya Station Hachiko Square',
-        'details-label': 'Details:',
+        'details-label': 'Details',
         'details-placeholder': 'e.g. Outside ticket gate, next to vending machine, 24/7 available',
+        'description-help': 'Optional: Enter details about the location and availability of the trash can',
         'add-btn': 'Add',
         'cancel-btn': 'Cancel',
         'delete-btn': 'Delete',
@@ -59,7 +63,7 @@ const translations = {
         'fallback-title': 'Trash Can Map',
         'fallback-desc1': 'Google Maps API key not configured',
         'fallback-desc2': 'Running in demo mode with simplified map',
-        'fallback-add-btn': '🗑️ Add Trash Can (Demo)',
+        'fallback-add-btn': '📍 Add Trash Can (Demo)',
         'confirm-delete': 'Delete this trash can?',
         'confirm-delete-all': 'Delete all trash cans?',
         'alert-enable-mode': 'Please enable Add Trash Can Mode first',
@@ -120,7 +124,7 @@ function switchLanguage(lang) {
     // 言語切り替えボタンのテキストを更新
     const langToggle = document.getElementById('langToggle');
     if (langToggle) {
-        langToggle.textContent = lang === 'ja' ? '🌐 English' : '🌐 日本語';
+        langToggle.title = lang === 'ja' ? 'Switch to English' : '日本語に切り替え';
     }
     
     // 動的コンテンツを再読み込み
@@ -153,17 +157,77 @@ function initializeEventListeners() {
         switchLanguage(newLang);
     });
     
+    // 検索機能
+    const searchBox = document.getElementById('searchBox');
+    searchBox.addEventListener('input', handleSearch);
+    
     // モーダル関連
-    document.querySelector('.close').addEventListener('click', closeModal);
+    const closeBtn = document.querySelector('.close');
+    closeBtn.addEventListener('click', closeModal);
+    
+    // キーボードアクセシビリティ対応
+    closeBtn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            closeModal();
+        }
+    });
+    
+    // モーダル外クリックで閉じる
     document.getElementById('pinModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
     
+    // ESCキーでモーダルを閉じる
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('pinModal').style.display === 'block') {
+            closeModal();
+        }
+    });
+    
     // フォーム送信
     document.getElementById('pinForm').addEventListener('submit', handlePinSubmit);
+    
+    // タッチデバイス検出とイベント最適化
+    if ('ontouchstart' in window) {
+        addTouchOptimizations();
+    }
 }
 
-// Google Maps初期化
+// タッチデバイス用の最適化
+function addTouchOptimizations() {
+    // ダブルタップズーム防止のためのファストクリック実装
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(button => {
+        button.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.98)';
+        }, { passive: true });
+        
+        button.addEventListener('touchend', function() {
+            this.style.transform = '';
+        }, { passive: true });
+    });
+    
+    // ピンアイテムのタッチ最適化
+    const updatePinsListTouchOptimization = () => {
+        const pinItems = document.querySelectorAll('.pin-item');
+        pinItems.forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            }, { passive: true });
+            
+            item.addEventListener('touchend', function() {
+                this.style.transform = '';
+            }, { passive: true });
+        });
+    };
+    
+    // MutationObserver でピンリストの変更を監視
+    const observer = new MutationObserver(updatePinsListTouchOptimization);
+    observer.observe(document.getElementById('pinsList'), { childList: true, subtree: true });
+}
+
+// Google Maps初期化（Google Mapスタイル強化）
 function initMap() {
     // 東京駅を中心とした地図
     const center = { lat: 35.6812, lng: 139.7671 };
@@ -171,9 +235,18 @@ function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 13,
         center: center,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: false, // カスタムズームコントロールを使用
         styles: [
             {
                 featureType: 'poi',
+                elementType: 'labels',
+                stylers: [{ visibility: 'simplified' }]
+            },
+            {
+                featureType: 'poi.business',
                 elementType: 'labels',
                 stylers: [{ visibility: 'off' }]
             }
@@ -192,17 +265,18 @@ function initMap() {
     loadPins();
 }
 
-// フォールバック地図初期化（Google Maps APIが利用できない場合）
+// フォールバック地図初期化（Google Mapスタイル）
 function initMapFallback() {
     const mapElement = document.getElementById('map');
     mapElement.innerHTML = `
         <div class="fallback-map">
-            <div class="icon">🗑️</div>
+            <div class="icon">🗺️</div>
             <div>
                 <h3>${translations[currentLanguage]['fallback-title']}</h3>
                 <p>${translations[currentLanguage]['fallback-desc1']}</p>
                 <p>${translations[currentLanguage]['fallback-desc2']}</p>
-                <button onclick="simulateMapClick()" class="btn btn-primary" style="margin-top: 20px;">
+                <button onclick="simulateMapClick()" class="btn btn-primary" style="margin-top: 20px;"
+                        aria-label="${translations[currentLanguage]['fallback-add-btn']}">
                     ${translations[currentLanguage]['fallback-add-btn']}
                 </button>
             </div>
@@ -237,15 +311,33 @@ function togglePinMode() {
 
 // モーダルを開く
 function openModal() {
-    document.getElementById('pinModal').style.display = 'block';
-    document.getElementById('pinTitle').focus();
+    const modal = document.getElementById('pinModal');
+    modal.style.display = 'block';
+    modal.setAttribute('aria-hidden', 'false');
+    
+    // フォーカス管理（アクセシビリティ向上）
+    const titleInput = document.getElementById('pinTitle');
+    setTimeout(() => {
+        titleInput.focus();
+    }, 100);
+    
+    // モバイル対応: body のスクロールを無効化
+    document.body.style.overflow = 'hidden';
 }
 
 // モーダルを閉じる
 function closeModal() {
-    document.getElementById('pinModal').style.display = 'none';
+    const modal = document.getElementById('pinModal');
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
     document.getElementById('pinForm').reset();
     currentLatLng = null;
+    
+    // body のスクロールを有効化
+    document.body.style.overflow = '';
+    
+    // フォーカス管理
+    document.getElementById('togglePinMode').focus();
 }
 
 // ゴミ箱追加フォームの送信処理
@@ -291,18 +383,19 @@ async function handlePinSubmit(e) {
     }
 }
 
-// 地図にマーカーを追加（ゴミ箱アイコン使用）
+// 地図にマーカーを追加（Google Mapスタイル）
 function addMarkerToMap(pin) {
     if (typeof google !== 'undefined' && map) {
-        // カスタムゴミ箱アイコン
+        // Google Map風のカスタムアイコン
         const trashIcon = {
             url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#4CAF50">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#1a73e8">
+                    <circle cx="12" cy="12" r="11" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
+                    <path d="M9 7h6l-1-1h-4l-1 1zm-1 2v8c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V9H8z" fill="#1a73e8"/>
                 </svg>
             `),
-            scaledSize: new google.maps.Size(32, 32),
-            anchor: new google.maps.Point(16, 32)
+            scaledSize: new google.maps.Size(24, 24),
+            anchor: new google.maps.Point(12, 24)
         };
         
         const marker = new google.maps.Marker({
@@ -315,16 +408,16 @@ function addMarkerToMap(pin) {
         
         const infoWindow = new google.maps.InfoWindow({
             content: `
-                <div style="padding: 10px; max-width: 250px;">
-                    <h3 style="margin: 0 0 10px 0; color: #333; display: flex; align-items: center;">
-                        🗑️ ${pin.title}
+                <div style="padding: 12px; max-width: 250px; font-family: 'Roboto', Arial, sans-serif;">
+                    <h3 style="margin: 0 0 8px 0; color: #1a73e8; font-size: 14px; font-weight: 500;">
+                        ${pin.title}
                     </h3>
-                    <p style="margin: 0 0 10px 0; color: #666;">${pin.description}</p>
-                    <div style="font-size: 0.8em; color: #999; margin-bottom: 10px;">
+                    <p style="margin: 0 0 8px 0; color: #5f6368; font-size: 13px; line-height: 1.4;">${pin.description}</p>
+                    <div style="font-size: 12px; color: #9aa0a6; margin-bottom: 12px;">
                         📍 ${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}
                     </div>
                     <button onclick="deletePin('${pin.id}')" 
-                            style="margin-top: 10px; padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            style="padding: 6px 12px; background: #ea4335; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: 'Roboto', Arial, sans-serif;">
                         ${translations[currentLanguage]['delete-btn']}
                     </button>
                 </div>
@@ -332,6 +425,10 @@ function addMarkerToMap(pin) {
         });
         
         marker.addListener('click', function() {
+            // 他の情報ウィンドウを閉じる
+            markers.forEach(markerData => {
+                markerData.infoWindow.close();
+            });
             infoWindow.open(map, marker);
         });
         
@@ -360,7 +457,7 @@ async function loadPins() {
     }
 }
 
-// ゴミ箱一覧の更新
+// ゴミ箱一覧の更新（Google Mapスタイル）
 async function updatePinsList() {
     try {
         const response = await fetch('/api/pins');
@@ -369,25 +466,56 @@ async function updatePinsList() {
         const pinsList = document.getElementById('pinsList');
         
         if (pins.length === 0) {
-            pinsList.innerHTML = `<p style="color: #999; text-align: center;">${translations[currentLanguage]['no-trash-cans']}</p>`;
+            pinsList.innerHTML = `
+                <div style="padding: 20px 24px; text-align: center; color: #9aa0a6; font-size: 14px;">
+                    ${translations[currentLanguage]['no-trash-cans']}
+                </div>
+            `;
             return;
         }
         
         pinsList.innerHTML = pins.map(pin => `
-            <div class="pin-item" onclick="focusPin('${pin.id}')">
-                <h4>🗑️ ${pin.title}</h4>
+            <div class="pin-item" onclick="focusPin('${pin.id}')" role="listitem" tabindex="0" 
+                 onkeydown="handlePinItemKeydown(event, '${pin.id}')"
+                 aria-label="ゴミ箱: ${pin.title.replace(/"/g, '&quot;')}">
+                <h4>${pin.title}</h4>
                 <p>${pin.description}</p>
                 <div class="coordinates">
                     📍 ${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}
                 </div>
                 <div class="pin-actions">
                     <button onclick="event.stopPropagation(); deletePin('${pin.id}')" 
-                            class="btn btn-danger btn-small">${translations[currentLanguage]['delete-btn']}</button>
+                            class="btn btn-danger btn-small"
+                            aria-label="削除: ${pin.title.replace(/"/g, '&quot;')}">${translations[currentLanguage]['delete-btn']}</button>
                 </div>
             </div>
         `).join('');
+        
+        // タッチ最適化を再適用
+        if ('ontouchstart' in window) {
+            setTimeout(() => {
+                const pinItems = document.querySelectorAll('.pin-item');
+                pinItems.forEach(item => {
+                    item.addEventListener('touchstart', function() {
+                        this.style.transform = 'scale(0.98)';
+                    }, { passive: true });
+                    
+                    item.addEventListener('touchend', function() {
+                        this.style.transform = '';
+                    }, { passive: true });
+                });
+            }, 100);
+        }
     } catch (error) {
         console.error('Error updating pins list:', error);
+    }
+}
+
+// ピンアイテムのキーボード操作対応
+function handlePinItemKeydown(event, pinId) {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        focusPin(pinId);
     }
 }
 
@@ -463,7 +591,7 @@ function clearMarkers() {
     markers = [];
 }
 
-// 通知表示
+// 通知表示（モバイル用改善）
 function showNotification(message, type = 'info') {
     // 既存の通知を削除
     const existingNotification = document.querySelector('.notification');
@@ -473,18 +601,25 @@ function showNotification(message, type = 'info') {
     
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
+    notification.setAttribute('role', 'alert');
+    notification.setAttribute('aria-live', 'polite');
+    
+    // モバイル用のスタイル調整
+    const isMobile = window.innerWidth <= 768;
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
+        top: ${isMobile ? '10px' : '20px'};
+        right: ${isMobile ? '10px' : '20px'};
+        left: ${isMobile ? '10px' : 'auto'};
+        padding: ${isMobile ? '12px 16px' : '15px 20px'};
         border-radius: 10px;
         color: white;
         font-weight: 600;
         z-index: 10000;
         animation: slideIn 0.3s ease;
-        max-width: 300px;
+        max-width: ${isMobile ? 'none' : '300px'};
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        font-size: ${isMobile ? '0.9rem' : '1rem'};
     `;
     
     // タイプに応じた背景色
@@ -499,11 +634,12 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // 3秒後に自動削除
+    // モバイルでは少し長めに表示
+    const displayTime = isMobile ? 4000 : 3000;
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    }, displayTime);
 }
 
 // CSS アニメーションを動的に追加
@@ -531,4 +667,34 @@ style.textContent = `
         }
     }
 `;
-document.head.appendChild(style); 
+document.head.appendChild(style);
+
+// 検索機能
+function handleSearch(event) {
+    const searchTerm = event.target.value.toLowerCase();
+    const pinItems = document.querySelectorAll('.pin-item');
+    
+    pinItems.forEach(item => {
+        const title = item.querySelector('h4').textContent.toLowerCase();
+        const description = item.querySelector('p').textContent.toLowerCase();
+        
+        if (title.includes(searchTerm) || description.includes(searchTerm)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// ズーム機能
+function zoomIn() {
+    if (map) {
+        map.setZoom(map.getZoom() + 1);
+    }
+}
+
+function zoomOut() {
+    if (map) {
+        map.setZoom(map.getZoom() - 1);
+    }
+} 
