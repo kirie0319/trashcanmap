@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-lang="page-title">ゴミ箱マップ - 日本のゴミ箱位置マッピング</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="title-section">
+                    <h1 data-lang="app-title">🗑️ ゴミ箱マップ</h1>
+                    <p data-lang="app-description">日本のゴミ箱位置をマッピング・共有するアプリ</p>
+                </div>
+                <div class="language-selector">
+                    <button id="langToggle" class="btn btn-secondary">🌐 English</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="controls">
+            <button id="togglePinMode" class="btn btn-primary" data-lang="add-mode-btn">🗑️ ゴミ箱追加モード: OFF</button>
+            <button id="clearAllPins" class="btn btn-danger" data-lang="clear-all-btn">🧹 全ゴミ箱削除</button>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <div class="sidebar">
+            <h3 data-lang="trash-list-title">🗑️ ゴミ箱一覧</h3>
+            <div id="pinsList"></div>
+        </div>
+    </div>
+
+    <!-- ゴミ箱追加モーダル -->
+    <div id="pinModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 data-lang="modal-title">🗑️ 新しいゴミ箱を追加</h2>
+            <form id="pinForm">
+                <div class="form-group">
+                    <label for="pinTitle" data-lang="location-label">場所・名称:</label>
+                    <input type="text" id="pinTitle" data-lang-placeholder="location-placeholder" placeholder="例: 渋谷駅ハチ公前" required>
+                </div>
+                <div class="form-group">
+                    <label for="pinDescription" data-lang="details-label">詳細情報:</label>
+                    <textarea id="pinDescription" rows="3" data-lang-placeholder="details-placeholder" placeholder="例: 改札外、自動販売機横、24時間利用可能"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" data-lang="add-btn">追加</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" data-lang="cancel-btn">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+    <!-- Google Maps API - APIキーは環境変数から取得 -->
+    <script>
+        // APIキーをサーバーから安全に取得
+        fetch('/api/config')
+            .then(response => response.json())
+            .then(config => {
+                if (config.google_maps_api_key && config.google_maps_api_key !== 'YOUR_API_KEY') {
+                    // 有効なAPIキーがある場合
+                    const script = document.createElement('script');
+                    script.src = `https://maps.googleapis.com/maps/api/js?key=${config.google_maps_api_key}&callback=initMap&libraries=geometry`;
+                    script.async = true;
+                    script.defer = true;
+                    document.head.appendChild(script);
+                } else {
+                    // APIキーが設定されていない場合はフォールバックを実行
+                    console.warn('Google Maps API key not configured. Using fallback mode.');
+                    initMapFallback();
+                }
+            })
+            .catch(error => {
+                console.warn('Could not load Google Maps API configuration. Using fallback mode.');
+                initMapFallback();
+            });
+    </script>
+</body>
+</html> 
