@@ -1,0 +1,12 @@
+{
+  "2a4d3e4b-04c7-4ada-a213-d7f81d906404": {
+    "lat": 35.60607821335351,
+    "lng": 139.73537341589372,
+    "title": "Ōimachi Sta. Higashiguchi (East Exit), 5-chōme-18 Higashiōi, Shinagawa City, Tokyo 140-0011, Japan",
+    "description": "Burnable、Non-burnable",
+    "trashTypes": [
+      "burnable",
+      "non-burnable"
+    ]
+  }
+}

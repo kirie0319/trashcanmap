@@ -17,43 +17,9 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="header-content">
-                <div class="title-section">
-                    <span class="logo">🗑️</span>
-                    <div>
-                        <h1 data-lang="app-title">ゴミ箱マップ</h1>
-                        <p data-lang="app-description">日本のゴミ箱位置をマッピング・共有するアプリ</p>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <div class="language-selector">
-                        <button id="langToggle" class="btn btn-icon" aria-label="言語切り替え" title="言語切り替え">🌐</button>
-                    </div>
-                </div>
-            </div>
-        </header>
-        
-        <div class="sidebar">
-            <div class="search-section">
-                <input type="text" class="search-box" placeholder="ゴミ箱を検索..." data-lang-placeholder="search-placeholder" id="searchBox">
-            </div>
-            
-            <div class="controls-section">
-                <div class="controls">
-                    <button id="togglePinMode" class="btn btn-primary" data-lang="add-mode-btn" aria-label="ゴミ箱追加モードの切り替え">
-                        📍 ゴミ箱追加モード: OFF
-                    </button>
-                    <button id="clearAllPins" class="btn btn-danger" data-lang="clear-all-btn" aria-label="全てのゴミ箱を削除">
-                        🗑️ 全削除
-                    </button>
-                </div>
-            </div>
-            
-            <div class="pins-section">
-                <h3 data-lang="trash-list-title">ゴミ箱一覧</h3>
-                <div id="pinsList" role="list" aria-label="ゴミ箱の一覧"></div>
-            </div>
+        <div class="search-bar-container">
+            <input type="text" class="search-box" placeholder="ゴミ箱を検索..." data-lang-placeholder="search-placeholder" id="searchBox">
+            <button id="langToggle" class="language-btn-inline" aria-label="言語切り替え" title="言語切り替え">🌐</button>
         </div>
         
         <div class="map-container">
@@ -65,6 +31,25 @@
                     <button class="zoom-btn" onclick="zoomIn()" aria-label="ズームイン" title="ズームイン">+</button>
                     <button class="zoom-btn" onclick="zoomOut()" aria-label="ズームアウト" title="ズームアウト">−</button>
                 </div>
+            </div>
+            
+            <!-- 現在地に戻るボタン -->
+            <div class="recenter-controls">
+                <button id="recenterBtn" class="recenter-btn" aria-label="現在地に戻る" title="現在地に戻る">
+                    <span class="recenter-icon">🧭</span>
+                </button>
+            </div>
+            
+            <!-- 下部タブバー -->
+            <div class="bottom-tab-bar">
+                <button id="addTab" class="tab-btn active" data-tab="add">
+                    <div class="tab-icon">🗑️</div>
+                    <div class="tab-text" data-lang="add-tab">追加</div>
+                </button>
+                <button id="deleteTab" class="tab-btn" data-tab="delete">
+                    <div class="tab-icon">❌</div>
+                    <div class="tab-text" data-lang="delete-tab">削除</div>
+                </button>
             </div>
         </div>
     </div>
@@ -81,12 +66,53 @@
                 <form id="pinForm">
                     <div class="form-group">
                         <label for="pinTitle" data-lang="location-label">場所・名称</label>
-                        <input type="text" id="pinTitle" data-lang-placeholder="location-placeholder" placeholder="例: 渋谷駅ハチ公前" required aria-required="true">
+                        <div class="location-input-container">
+                            <input type="text" id="pinTitle" data-lang-placeholder="location-placeholder" placeholder="場所を取得中..." required aria-required="true" readonly>
+                            <button type="button" id="refreshLocation" class="refresh-btn" aria-label="場所を再取得" title="場所を再取得">🔄</button>
+                        </div>
+                        <small class="location-help" data-lang="location-help">位置情報から自動で場所名を取得します</small>
                     </div>
                     <div class="form-group">
-                        <label for="pinDescription" data-lang="details-label">詳細情報</label>
-                        <textarea id="pinDescription" rows="3" data-lang-placeholder="details-placeholder" placeholder="例: 改札外、自動販売機横、24時間利用可能" aria-describedby="description-help"></textarea>
-                        <small id="description-help" data-lang="description-help">任意: ゴミ箱の詳細な場所や利用可能時間などを入力してください</small>
+                        <label data-lang="details-label">対応ゴミの種類</label>
+                        <div class="trash-type-grid">
+                            <label class="trash-type-option">
+                                <input type="checkbox" name="trashType" value="newspaper" data-lang-value="newspaper">
+                                <span class="checkbox-indicator"></span>
+                                <span class="trash-type-icon">📰</span>
+                                <span class="trash-type-label" data-lang="trash-newspaper">新聞・雑誌</span>
+                            </label>
+                            <label class="trash-type-option">
+                                <input type="checkbox" name="trashType" value="plastic" data-lang-value="plastic">
+                                <span class="checkbox-indicator"></span>
+                                <span class="trash-type-icon">🍶</span>
+                                <span class="trash-type-label" data-lang="trash-plastic">ペットボトル</span>
+                            </label>
+                            <label class="trash-type-option">
+                                <input type="checkbox" name="trashType" value="cans" data-lang-value="cans">
+                                <span class="checkbox-indicator"></span>
+                                <span class="trash-type-icon">🥫</span>
+                                <span class="trash-type-label" data-lang="trash-cans">カン・ビン</span>
+                            </label>
+                            <label class="trash-type-option">
+                                <input type="checkbox" name="trashType" value="other" data-lang-value="other">
+                                <span class="checkbox-indicator"></span>
+                                <span class="trash-type-icon">🗑️</span>
+                                <span class="trash-type-label" data-lang="trash-other">その他</span>
+                            </label>
+                            <label class="trash-type-option">
+                                <input type="checkbox" name="trashType" value="burnable" data-lang-value="burnable">
+                                <span class="checkbox-indicator"></span>
+                                <span class="trash-type-icon">🔥</span>
+                                <span class="trash-type-label" data-lang="trash-burnable">燃える</span>
+                            </label>
+                            <label class="trash-type-option">
+                                <input type="checkbox" name="trashType" value="non-burnable" data-lang-value="non-burnable">
+                                <span class="checkbox-indicator"></span>
+                                <span class="trash-type-icon">🚫🔥</span>
+                                <span class="trash-type-label" data-lang="trash-non-burnable">燃えない</span>
+                            </label>
+                        </div>
+                        <small id="trash-type-help" data-lang="trash-type-help">このゴミ箱で捨てられるゴミの種類を選択してください（複数選択可）</small>
                     </div>
                 </form>
             </div>
@@ -94,6 +120,25 @@
             <div class="modal-footer">
                 <button type="button" class="btn" onclick="closeModal()" data-lang="cancel-btn">キャンセル</button>
                 <button type="submit" form="pinForm" class="btn btn-primary" data-lang="add-btn">追加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゴミ箱削除モーダル -->
+    <div id="deleteModal" class="modal" role="dialog" aria-labelledby="delete-modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="delete-modal-title" data-lang="delete-modal-title">ゴミ箱を削除</h2>
+                <span class="close" onclick="closeDeleteModal()" aria-label="モーダルを閉じる" title="閉じる">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <p data-lang="delete-modal-description">削除するゴミ箱を選択してください：</p>
+                <div id="deleteList" class="delete-list"></div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeDeleteModal()" data-lang="cancel-btn">キャンセル</button>
             </div>
         </div>
     </div>
