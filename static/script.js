@@ -259,10 +259,60 @@ function initializeEventListeners() {
         });
     }
     
-    // 検索機能
+    // 検索機能（リアルタイム検索）
     const searchBox = document.getElementById('searchBox');
     if (searchBox) {
-        searchBox.addEventListener('input', handleSearch);
+        // リアルタイム検索（入力時）
+        searchBox.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            // 検索実行
+            handleSearch(e);
+            
+            // 検索候補表示
+            if (searchTerm.length >= 2) {
+                showSearchSuggestions(searchTerm);
+            } else {
+                hideSearchSuggestions();
+            }
+        });
+        
+        // 検索ボックスのクリア機能
+        searchBox.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                showAllMarkers();
+                hideSearchSuggestions();
+                showNotification('検索をクリアしました', 'info');
+            }
+            
+            // 矢印キーで候補選択（将来の拡張用）
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                // TODO: 候補選択機能
+            }
+        });
+        
+        // フォーカス時の処理
+        searchBox.addEventListener('focus', function() {
+            this.style.boxShadow = '0 4px 20px rgba(13, 83, 255, 0.3)';
+            
+            // フォーカス時に候補を表示
+            const searchTerm = this.value.toLowerCase().trim();
+            if (searchTerm.length >= 2) {
+                showSearchSuggestions(searchTerm);
+            }
+        });
+        
+        // フォーカス外れ時の処理
+        searchBox.addEventListener('blur', function() {
+            this.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+            
+            // 少し遅延させて候補を非表示（クリック処理のため）
+            setTimeout(() => {
+                hideSearchSuggestions();
+            }, 200);
+        });
     }
     
     // モーダル関連
@@ -629,6 +679,13 @@ function addMarkerToMap(pin) {
             animation: google.maps.Animation.DROP
         });
         
+        // マーカーに検索用データを追加
+        marker.searchData = {
+            title: pin.title,
+            description: pin.description,
+            trashTypes: pin.trashTypes || []
+        };
+        
         // ゴミ種類のアイコンを生成
         const trashTypeIcons = {
             'newspaper': '📰',
@@ -797,18 +854,127 @@ document.head.appendChild(style);
 
 // 検索機能
 function handleSearch(event) {
-    const searchTerm = event.target.value.toLowerCase();
-    const pinItems = document.querySelectorAll('.pin-item');
+    const searchTerm = event.target.value.toLowerCase().trim();
     
-    pinItems.forEach(item => {
-        const title = item.querySelector('h4').textContent.toLowerCase();
-        const description = item.querySelector('p').textContent.toLowerCase();
+    if (searchTerm === '') {
+        // 検索語が空の場合、全てのマーカーを表示
+        showAllMarkers();
+        return;
+    }
+    
+    // 検索にマッチするマーカーを見つける
+    const matchingMarkers = [];
+    const nonMatchingMarkers = [];
+    
+    markers.forEach(markerData => {
+        const marker = markerData.marker;
+        const searchData = marker.searchData;
         
-        if (title.includes(searchTerm) || description.includes(searchTerm)) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
+        if (!searchData) {
+            // 検索データがない場合はタイトルのみで検索
+            const title = marker.getTitle().toLowerCase();
+            if (title.includes(searchTerm)) {
+                matchingMarkers.push(markerData);
+            } else {
+                nonMatchingMarkers.push(markerData);
+            }
+            return;
         }
+        
+        let isMatch = false;
+        
+        // タイトルでの検索
+        if (searchData.title.toLowerCase().includes(searchTerm)) {
+            isMatch = true;
+        }
+        
+        // 説明文での検索
+        if (searchData.description.toLowerCase().includes(searchTerm)) {
+            isMatch = true;
+        }
+        
+        // ゴミ種類での検索
+        if (searchData.trashTypes && searchData.trashTypes.length > 0) {
+            const trashTypeKeywords = {
+                'newspaper': ['新聞', '雑誌', 'newspaper', 'magazine'],
+                'plastic': ['ペット', 'ボトル', 'plastic', 'bottle', 'pet'],
+                'cans': ['カン', 'ビン', '缶', 'can', 'bottle', 'glass'],
+                'other': ['その他', 'ゴミ', 'other', 'trash', 'garbage'],
+                'burnable': ['燃える', '可燃', 'burnable', 'combustible'],
+                'non-burnable': ['燃えない', '不燃', 'non-burnable', 'incombustible']
+            };
+            
+            for (const trashType of searchData.trashTypes) {
+                const keywords = trashTypeKeywords[trashType] || [trashType];
+                if (keywords.some(keyword => 
+                    keyword.toLowerCase().includes(searchTerm) || 
+                    searchTerm.includes(keyword.toLowerCase())
+                )) {
+                    isMatch = true;
+                    break;
+                }
+            }
+        }
+        
+        // 地域名での検索（タイトルに含まれる駅名など）
+        const locationKeywords = ['駅', '公園', '広場', '口', 'station', 'park', 'plaza', 'exit'];
+        if (locationKeywords.some(keyword => 
+            searchData.title.toLowerCase().includes(keyword) && 
+            searchTerm.includes(keyword.toLowerCase())
+        )) {
+            isMatch = true;
+        }
+        
+        if (isMatch) {
+            matchingMarkers.push(markerData);
+        } else {
+            nonMatchingMarkers.push(markerData);
+        }
+    });
+    
+    // マッチしないマーカーを非表示
+    nonMatchingMarkers.forEach(markerData => {
+        markerData.marker.setVisible(false);
+    });
+    
+    // マッチするマーカーを表示
+    matchingMarkers.forEach(markerData => {
+        markerData.marker.setVisible(true);
+    });
+    
+    // 検索結果の通知
+    if (matchingMarkers.length === 0) {
+        showNotification(`"${event.target.value}" に一致するゴミ箱が見つかりませんでした`, 'info');
+    } else {
+        showNotification(`${matchingMarkers.length}件のゴミ箱が見つかりました`, 'success');
+        
+        // 複数のマーカーがある場合、地図の表示範囲を調整
+        if (matchingMarkers.length > 1) {
+            const bounds = new google.maps.LatLngBounds();
+            matchingMarkers.forEach(markerData => {
+                bounds.extend(markerData.marker.getPosition());
+            });
+            map.fitBounds(bounds);
+            
+            // ズームが近すぎる場合は調整
+            google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                if (map.getZoom() > 16) {
+                    map.setZoom(16);
+                }
+            });
+        } else {
+            // 1件の場合は中央に表示
+            const firstMarker = matchingMarkers[0].marker;
+            map.setCenter(firstMarker.getPosition());
+            map.setZoom(16);
+        }
+    }
+}
+
+// 全てのマーカーを表示
+function showAllMarkers() {
+    markers.forEach(markerData => {
+        markerData.marker.setVisible(true);
     });
 }
 
@@ -1441,5 +1607,139 @@ function closeNavigationModal() {
     const modal = document.getElementById('navigationModal');
     if (modal) {
         modal.remove();
+    }
+}
+
+// 検索候補を表示する関数
+function showSearchSuggestions(searchTerm) {
+    if (searchTerm.length < 2) {
+        hideSearchSuggestions();
+        return;
+    }
+    
+    const suggestions = [];
+    const addedSuggestions = new Set();
+    
+    // マーカーから候補を収集
+    markers.forEach(markerData => {
+        const marker = markerData.marker;
+        const searchData = marker.searchData;
+        
+        if (searchData) {
+            // タイトルから候補を抽出
+            const title = searchData.title;
+            if (title.toLowerCase().includes(searchTerm) && !addedSuggestions.has(title)) {
+                suggestions.push({ text: title, type: 'location' });
+                addedSuggestions.add(title);
+            }
+            
+            // ゴミ種類から候補を抽出
+            if (searchData.trashTypes) {
+                searchData.trashTypes.forEach(trashType => {
+                    const label = translations[currentLanguage][`trash-${trashType}`];
+                    if (label && label.toLowerCase().includes(searchTerm) && !addedSuggestions.has(label)) {
+                        suggestions.push({ text: label, type: 'trash' });
+                        addedSuggestions.add(label);
+                    }
+                });
+            }
+        }
+    });
+    
+    // 一般的な検索キーワードを追加
+    const commonKeywords = [
+        { text: '新聞', type: 'trash' },
+        { text: 'ペットボトル', type: 'trash' },
+        { text: 'カン・ビン', type: 'trash' },
+        { text: '燃えるゴミ', type: 'trash' },
+        { text: '燃えないゴミ', type: 'trash' },
+        { text: '駅', type: 'location' },
+        { text: '公園', type: 'location' }
+    ];
+    
+    commonKeywords.forEach(keyword => {
+        if (keyword.text.toLowerCase().includes(searchTerm) && !addedSuggestions.has(keyword.text)) {
+            suggestions.push(keyword);
+            addedSuggestions.add(keyword.text);
+        }
+    });
+    
+    // 候補を表示（最大5件）
+    displaySearchSuggestions(suggestions.slice(0, 5));
+}
+
+// 検索候補を表示
+function displaySearchSuggestions(suggestions) {
+    let suggestionBox = document.getElementById('searchSuggestions');
+    
+    if (!suggestionBox) {
+        suggestionBox = document.createElement('div');
+        suggestionBox.id = 'searchSuggestions';
+        suggestionBox.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        `;
+        
+        const searchContainer = document.querySelector('.search-container');
+        if (searchContainer) {
+            searchContainer.style.position = 'relative';
+            searchContainer.appendChild(suggestionBox);
+        }
+    }
+    
+    if (suggestions.length === 0) {
+        suggestionBox.style.display = 'none';
+        return;
+    }
+    
+    suggestionBox.innerHTML = suggestions.map((suggestion, index) => {
+        const icon = suggestion.type === 'trash' ? '🗑️' : '📍';
+        return `
+            <div class="suggestion-item" data-suggestion="${suggestion.text}" 
+                 style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #3c4043;">
+                <span style="font-size: 16px;">${icon}</span>
+                <span>${suggestion.text}</span>
+            </div>
+        `;
+    }).join('');
+    
+    suggestionBox.style.display = 'block';
+    
+    // 候補クリック時の処理
+    suggestionBox.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const suggestionText = this.getAttribute('data-suggestion');
+            const searchBox = document.getElementById('searchBox');
+            searchBox.value = suggestionText;
+            handleSearch({ target: searchBox });
+            hideSearchSuggestions();
+        });
+        
+        // ホバー効果
+        item.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+}
+
+// 検索候補を非表示
+function hideSearchSuggestions() {
+    const suggestionBox = document.getElementById('searchSuggestions');
+    if (suggestionBox) {
+        suggestionBox.style.display = 'none';
     }
 } 
