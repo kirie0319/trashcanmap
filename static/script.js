@@ -76,7 +76,14 @@ const translations = {
         'success-location': '現在地を取得しました',
         'location-found': '現在地を取得しました',
         'add-tab': '追加',
-        'delete-tab': '削除'
+        'delete-tab': '削除',
+        'navigation-btn': 'ルート検索',
+        'navigation-options': 'ナビゲーション方法を選択',
+        'google-maps': 'Google Maps',
+        'apple-maps': 'Apple Maps',
+        'browser-maps': 'ブラウザで開く',
+        'copy-coordinates': '座標をコピー',
+        'coordinates-copied': '座標をコピーしました'
     },
     en: {
         'page-title': 'Trash Can Map - Mapping Trash Can Locations in Japan',
@@ -143,7 +150,14 @@ const translations = {
         'success-location': 'Current location obtained',
         'location-found': 'Current location obtained',
         'add-tab': 'Add',
-        'delete-tab': 'Delete'
+        'delete-tab': 'Delete',
+        'navigation-btn': 'Route Search',
+        'navigation-options': 'Select Navigation Method',
+        'google-maps': 'Google Maps',
+        'apple-maps': 'Apple Maps',
+        'browser-maps': 'Open in Browser',
+        'copy-coordinates': 'Copy Coordinates',
+        'coordinates-copied': 'Coordinates copied'
     }
 };
 
@@ -650,8 +664,14 @@ function addMarkerToMap(pin) {
                     <div style="font-size: 12px; color: #9aa0a6; margin-bottom: 12px;">
                         📍 ${pin.lat.toFixed(6)}, ${pin.lng.toFixed(6)}
                     </div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button onclick="startNavigation(${pin.lat}, ${pin.lng}, '${pin.title.replace(/'/g, "\\'")}')" 
+                                style="flex: 1; padding: 8px 12px; background: #0D53FF; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: 'Roboto', Arial, sans-serif; font-weight: 500;">
+                            🧭 ${translations[currentLanguage]['navigation-btn']}
+                        </button>
+                    </div>
                     <button onclick="deletePin('${pin.id}')" 
-                            style="padding: 6px 12px; background: #ea4335; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: 'Roboto', Arial, sans-serif;">
+                            style="width: 100%; padding: 6px 12px; background: #ea4335; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: 'Roboto', Arial, sans-serif;">
                         ${translations[currentLanguage]['delete-btn']}
                     </button>
                 </div>
@@ -1243,5 +1263,183 @@ function recenterToCurrentLocation() {
                 maximumAge: 300000
             }
         );
+    }
+}
+
+// ナビゲーション機能
+function startNavigation(lat, lng, title) {
+    // 現在地が取得されているかチェック
+    let startLat, startLng;
+    if (currentLocationMarker) {
+        const position = currentLocationMarker.getPosition();
+        startLat = position.lat();
+        startLng = position.lng();
+    }
+    
+    // デバイス判定
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    const isMobile = isIOS || isAndroid;
+    
+    if (isMobile) {
+        // モバイルデバイスの場合、選択肢を表示
+        showNavigationOptions(lat, lng, title, startLat, startLng);
+    } else {
+        // デスクトップの場合、Google Mapsを開く
+        openGoogleMaps(lat, lng, title, startLat, startLng);
+    }
+}
+
+// ナビゲーション選択肢を表示
+function showNavigationOptions(lat, lng, title, startLat, startLng) {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    let options = `
+        <div style="padding: 16px; font-family: 'Roboto', Arial, sans-serif;">
+            <h3 style="margin: 0 0 16px 0; color: #3c4043; font-size: 16px; font-weight: 500;">
+                ${translations[currentLanguage]['navigation-options']}
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button onclick="openGoogleMaps(${lat}, ${lng}, '${title.replace(/'/g, "\\'")}', ${startLat}, ${startLng}); closeNavigationModal();" 
+                        style="padding: 12px 16px; background: #4285f4; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    🗺️ ${translations[currentLanguage]['google-maps']}
+                </button>
+    `;
+    
+    if (isIOS) {
+        options += `
+                <button onclick="openAppleMaps(${lat}, ${lng}, '${title.replace(/'/g, "\\'")}', ${startLat}, ${startLng}); closeNavigationModal();" 
+                        style="padding: 12px 16px; background: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    🍎 ${translations[currentLanguage]['apple-maps']}
+                </button>
+        `;
+    }
+    
+    options += `
+                <button onclick="openBrowserMaps(${lat}, ${lng}, '${title.replace(/'/g, "\\'")}', ${startLat}, ${startLng}); closeNavigationModal();" 
+                        style="padding: 12px 16px; background: #34a853; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    🌐 ${translations[currentLanguage]['browser-maps']}
+                </button>
+                <button onclick="copyCoordinates(${lat}, ${lng}); closeNavigationModal();" 
+                        style="padding: 12px 16px; background: #9aa0a6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    📋 ${translations[currentLanguage]['copy-coordinates']}
+                </button>
+            </div>
+            <button onclick="closeNavigationModal();" 
+                    style="width: 100%; padding: 8px; background: transparent; color: #5f6368; border: none; cursor: pointer; font-size: 14px; margin-top: 12px;">
+                ${translations[currentLanguage]['cancel-btn']}
+            </button>
+        </div>
+    `;
+    
+    // モーダルを作成して表示
+    showNavigationModal(options);
+}
+
+// Google Mapsを開く
+function openGoogleMaps(lat, lng, title, startLat, startLng) {
+    let url;
+    if (startLat && startLng) {
+        // 現在地からのルート検索
+        url = `https://www.google.com/maps/dir/${startLat},${startLng}/${lat},${lng}`;
+    } else {
+        // 目的地のみ
+        url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+    window.open(url, '_blank');
+}
+
+// Apple Mapsを開く（iOS）
+function openAppleMaps(lat, lng, title, startLat, startLng) {
+    let url;
+    if (startLat && startLng) {
+        // 現在地からのルート検索
+        url = `http://maps.apple.com/?saddr=${startLat},${startLng}&daddr=${lat},${lng}`;
+    } else {
+        // 目的地のみ
+        url = `http://maps.apple.com/?q=${lat},${lng}`;
+    }
+    window.location.href = url;
+}
+
+// ブラウザでGoogle Mapsを開く
+function openBrowserMaps(lat, lng, title, startLat, startLng) {
+    let url;
+    if (startLat && startLng) {
+        // 現在地からのルート検索
+        url = `https://maps.google.com/maps?saddr=${startLat},${startLng}&daddr=${lat},${lng}`;
+    } else {
+        // 目的地のみ
+        url = `https://maps.google.com/maps?q=${lat},${lng}`;
+    }
+    window.open(url, '_blank');
+}
+
+// 座標をコピー
+function copyCoordinates(lat, lng) {
+    const coordinates = `${lat},${lng}`;
+    navigator.clipboard.writeText(coordinates).then(() => {
+        showNotification(translations[currentLanguage]['coordinates-copied'], 'success');
+    }).catch(() => {
+        // フォールバック: テキストエリアを使用
+        const textArea = document.createElement('textarea');
+        textArea.value = coordinates;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification(translations[currentLanguage]['coordinates-copied'], 'success');
+    });
+}
+
+// ナビゲーションモーダルを表示
+function showNavigationModal(content) {
+    // 既存のモーダルがあれば削除
+    const existingModal = document.getElementById('navigationModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'navigationModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        max-width: 320px;
+        width: calc(100% - 32px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    `;
+    modalContent.innerHTML = content;
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // モーダル外クリックで閉じる
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeNavigationModal();
+        }
+    });
+}
+
+// ナビゲーションモーダルを閉じる
+function closeNavigationModal() {
+    const modal = document.getElementById('navigationModal');
+    if (modal) {
+        modal.remove();
     }
 } 
